@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+</head>
+<body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:30px 0;">
+    <tr>
+      <td align="center">
+        <table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 2px 10px rgba(0,0,0,0.1);">
+ 
+          <!-- HEADER -->
+          <tr>
+            <td style="background:#cc0000;padding:24px 32px;">
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td>
+                    <span style="color:white;font-size:22px;font-weight:bold;">🏦 Güvenli Bankacılık</span>
+                  </td>
+                  <td align="right">
+                    <span style="color:rgba(255,255,255,0.8);font-size:12px;">Güvenlik Bildirimi</span>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+ 
+          <!-- UYARI BANDI -->
+          <tr>
+            <td style="background:#fff3cd;padding:12px 32px;border-bottom:1px solid #ffc107;">
+              <span style="color:#856404;font-size:13px;">⚠️ Bu mesaj hesap güvenliğinizle ilgilidir. Lütfen dikkatlice okuyun.</span>
+            </td>
+          </tr>
+ 
+          <!-- İÇERİK -->
+          <tr>
+            <td style="padding:32px;">
+              <p style="color:#333;font-size:15px;margin:0 0 16px;">Sayın Müşterimiz,</p>
+              <p style="color:#555;font-size:14px;line-height:1.7;margin:0 0 20px;">
+                Hesabınızda <strong style="color:#cc0000;">yetkisiz giriş denemesi</strong> tespit edilmiştir.
+                Hesabınızın güvenliğini sağlamak amacıyla kimliğinizi doğrulamanız gerekmektedir.
+                Bu işlemi gerçekleştirmezseniz hesabınız <strong>24 saat</strong> içinde geçici olarak askıya alınacaktır.
+              </p>
+ 
+              <!-- DETAY KUTUSU -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="background:#fff5f5;border:1px solid #f8d7da;border-radius:6px;margin-bottom:24px;">
+                <tr>
+                  <td style="padding:16px 20px;">
+                    <p style="margin:0 0 8px;color:#888;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">İşlem Detayları</p>
+                    <p style="margin:0 0 4px;font-size:13px;color:#333;">📍 Konum: Bilinmeyen Cihaz</p>
+                    <p style="margin:0 0 4px;font-size:13px;color:#333;">🕐 Zaman: {{current_time}}</p>
+                    <p style="margin:0;font-size:13px;color:#cc0000;font-weight:bold;">Durum: Şüpheli Aktivite</p>
+                  </td>
+                </tr>
+              </table>
+ 
+              <!-- BUTON -->
+              <table width="100%" cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center" style="padding:8px 0 24px;">
+                    <a href="{{click_url}}" style="background:#cc0000;color:white;padding:14px 40px;text-decoration:none;border-radius:6px;font-size:15px;font-weight:bold;display:inline-block;">
+                      Hesabımı Doğrula
+                    </a>
+                  </td>
+                </tr>
+              </table>
+ 
+              <p style="color:#999;font-size:12px;line-height:1.6;margin:0 0 8px;">
+                Bu işlemi siz yapmadıysanız lütfen derhal müşteri hizmetlerimizi arayın: <strong>444 0 000</strong>
+              </p>
+              <p style="color:#bbb;font-size:11px;text-align:center;margin:16px 0 0;">
+                Şüpheli bir e-posta mı aldınız? <a href="{{report_url}}" style="color:#cc0000;">Bildir</a>
+              </p>
+            </td>
+          </tr>
+ 
+          <!-- FOOTER -->
+          <tr>
+            <td style="background:#f8f8f8;padding:16px 32px;border-top:1px solid #eee;">
+              <p style="margin:0;color:#aaa;font-size:11px;text-align:center;">
+                Bu e-posta otomatik olarak gönderilmiştir. Lütfen yanıtlamayın.
+              </p>
+            </td>
+          </tr>
+ 
+        </table>
+      </td>
+    </tr>
+  </table>
+ 
+  <!-- Tracking Pixel -->
+  <img src="{{open_url}}" width="1" height="1" style="display:none;" alt="" />
+</body>
+</html>

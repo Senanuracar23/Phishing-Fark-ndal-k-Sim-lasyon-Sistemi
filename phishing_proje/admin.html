@@ -1,0 +1,578 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Phishing Simülasyon — Admin Panel</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #f4f6f9; color: #1a1a2e; }
+    .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: 220px; background: #1a1a2e; display: flex; flex-direction: column; padding: 24px 0; }
+    .sidebar .logo { color: #fff; font-size: 15px; font-weight: 600; padding: 0 24px 24px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sidebar .logo span { color: #e74c3c; }
+    .nav-item { padding: 12px 24px; color: rgba(255,255,255,0.6); cursor: pointer; font-size: 14px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; border-left: 3px solid transparent; }
+    .nav-item:hover, .nav-item.active { color: #fff; background: rgba(255,255,255,0.07); border-left-color: #e74c3c; }
+    .sidebar-footer { margin-top: auto; padding: 16px 24px; color: rgba(255,255,255,0.3); font-size: 11px; line-height: 1.6; }
+    .live-badge { display: inline-block; background: #27ae60; color: white; font-size: 10px; padding: 2px 7px; border-radius: 10px; margin-left: 6px; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .main { margin-left: 220px; padding: 32px; min-height: 100vh; }
+    .page { display: none; } .page.active { display: block; }
+    .page-title { font-size: 22px; font-weight: 600; margin-bottom: 6px; }
+    .page-sub { font-size: 13px; color: #666; margin-bottom: 28px; }
+    .metrics { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 28px; }
+    .metric-card { background: #fff; border-radius: 12px; padding: 18px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+    .metric-card .label { font-size: 11px; color: #888; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .metric-card .value { font-size: 28px; font-weight: 700; }
+    .metric-card .value.red { color: #e74c3c; } .metric-card .value.orange { color: #f39c12; }
+    .metric-card .value.green { color: #27ae60; } .metric-card .value.blue { color: #3498db; }
+    .metric-card .sub { font-size: 11px; color: #aaa; margin-top: 4px; }
+    .form-card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 24px; }
+    .form-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 20px; padding-bottom: 12px; border-bottom: 1px solid #f0f0f0; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group.full { grid-column: 1 / -1; }
+    label { font-size: 13px; font-weight: 500; color: #444; }
+    input, select, textarea { padding: 10px 14px; border: 1px solid #e0e0e0; border-radius: 8px; font-size: 14px; font-family: inherit; background: #fafafa; transition: border 0.2s; outline: none; }
+    input:focus, select:focus, textarea:focus { border-color: #e74c3c; background: #fff; }
+    textarea { resize: vertical; min-height: 90px; }
+    .btn { padding: 11px 24px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; font-family: inherit; transition: all 0.2s; }
+    .btn-primary { background: #e74c3c; color: #fff; } .btn-primary:hover { background: #c0392b; }
+    .btn-secondary { background: #f0f0f0; color: #333; } .btn-secondary:hover { background: #e0e0e0; }
+    .table-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); margin-bottom: 24px; }
+    .table-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 16px; }
+    table { width: 100%; border-collapse: collapse; font-size: 12px; }
+    th { text-align: left; padding: 10px; color: #888; font-weight: 500; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; border-bottom: 1px solid #f0f0f0; }
+    td { padding: 10px; border-bottom: 1px solid #f8f8f8; color: #333; }
+    tr:last-child td { border-bottom: none; } tr:hover td { background: #fafafa; }
+    .badge { display: inline-block; padding: 3px 9px; border-radius: 20px; font-size: 10px; font-weight: 600; }
+    .badge.high { background: #fdecea; color: #c0392b; } .badge.mid { background: #fef9e7; color: #d68910; }
+    .badge.low { background: #eafaf1; color: #1e8449; } .badge.reported { background: #e8f4fd; color: #2471a3; }
+    .check { color: #27ae60; font-weight: 700; } .cross { color: #ddd; }
+    .chart-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 24px; }
+    .chart-card { background: #fff; border-radius: 12px; padding: 24px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); }
+    .chart-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: #444; }
+    .chart-wrap { position: relative; height: 220px; }
+    .camp-list { display: flex; flex-direction: column; gap: 10px; }
+    .camp-item { background: #fff; border-radius: 10px; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.07); display: flex; align-items: center; justify-content: space-between; cursor: pointer; transition: box-shadow 0.2s; border-left: 4px solid #e74c3c; }
+    .camp-item:hover { box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
+    .camp-item .camp-name { font-weight: 600; font-size: 14px; }
+    .camp-item .camp-meta { font-size: 12px; color: #888; margin-top: 3px; }
+    .camp-item .camp-id { font-size: 11px; background: #f0f0f0; padding: 4px 10px; border-radius: 20px; color: #555; font-family: monospace; }
+    .alert { padding: 12px 16px; border-radius: 8px; font-size: 13px; margin-bottom: 16px; display: none; }
+    .alert.success { background: #eafaf1; color: #1e8449; border: 1px solid #a9dfbf; }
+    .alert.error { background: #fdecea; color: #c0392b; border: 1px solid #f1948a; }
+    .alert.show { display: block; }
+    .funnel { display: flex; flex-direction: column; gap: 10px; margin-top: 8px; }
+    .funnel-row { display: flex; align-items: center; gap: 12px; }
+    .funnel-label { font-size: 12px; color: #888; width: 80px; flex-shrink: 0; }
+    .funnel-bar { height: 30px; border-radius: 6px; display: flex; align-items: center; padding: 0 12px; font-size: 12px; font-weight: 600; color: #fff; min-width: 50px; transition: width 0.8s ease; }
+    .loading { text-align: center; padding: 40px; color: #aaa; font-size: 14px; }
+    .last-update { font-size: 11px; color: #aaa; margin-bottom: 16px; }
+    .cikis-btn { margin: 16px 24px 0; padding: 8px 14px; background: rgba(231,76,60,0.15); color: #e74c3c; border: 1px solid rgba(231,76,60,0.3); border-radius: 8px; cursor: pointer; font-size: 12px; font-weight: 600; text-align: center; text-decoration: none; display: block; }
+    .cikis-btn:hover { background: rgba(231,76,60,0.25); }
+    /* Session uyarı banner */
+    #session-banner { display:none; position:fixed; top:0; left:0; right:0; z-index:9999;
+      background:#e74c3c; color:#fff; text-align:center; padding:10px; font-size:13px; font-weight:600; }
+  </style>
+</head>
+<body>
+ 
+<!-- Session süresi dolduğunda gösterilir -->
+<div id="session-banner">
+  ⚠️ Oturum süresi doldu. <a href="/giris" style="color:#fff;text-decoration:underline;">Tekrar giriş yapın</a>
+</div>
+ 
+<div class="sidebar">
+  <div class="logo">🎣 Phishing<span>Sim</span></div>
+  <div class="nav-item active" onclick="showPage('dashboard', this)"><span>📊</span> Dashboard <span class="live-badge">CANLI</span></div>
+  <div class="nav-item" onclick="showPage('campaign', this)"><span>➕</span> Kampanya Oluştur</div>
+  <div class="nav-item" onclick="showPage('send', this)"><span>📨</span> Mail Gönder</div>
+  <div class="nav-item" onclick="showPage('stats', this)"><span>📈</span> İstatistikler</div>
+  <a href="/cikis" class="cikis-btn">🚪 Çıkış Yap</a>
+  <div class="sidebar-footer">
+    Yalnızca eğitim ve farkındalık amacıyla geliştirilmiştir.<br><br>
+    Doğuş Üniversitesi<br>Senanur AÇAR
+  </div>
+</div>
+ 
+<div class="main">
+ 
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-title">Genel Bakış</div>
+    <div class="page-sub">Tüm kampanyaların özet istatistikleri — otomatik güncellenir</div>
+    <div class="last-update">Son güncelleme: <span id="last-update-time">—</span></div>
+ 
+    <div class="metrics" style="grid-template-columns:repeat(5,1fr);">
+      <div class="metric-card"><div class="label">Toplam Kampanya</div><div class="value" id="d-total-camp">—</div></div>
+      <div class="metric-card"><div class="label">Mail Gönderildi</div><div class="value orange" id="d-total-sent">—</div></div>
+      <div class="metric-card"><div class="label">Mail Açıldı</div><div class="value orange" id="d-total-opened">—</div></div>
+      <div class="metric-card"><div class="label">Linke Tıkladı</div><div class="value red" id="d-total-clicked">—</div></div>
+      <div class="metric-card"><div class="label">Phishing Bildirdi</div><div class="value blue" id="d-total-reported">—</div></div>
+    </div>
+ 
+    <div class="table-card">
+      <h3>Kampanyalar</h3>
+      <div class="camp-list" id="camp-list"><div class="loading">Yükleniyor...</div></div>
+    </div>
+  </div>
+ 
+  <!-- KAMPANYA OLUŞTUR -->
+  <div class="page" id="page-campaign">
+    <div class="page-title">Yeni Kampanya</div>
+    <div class="page-sub">Bir kampanya oluştur, ardından mail gönder</div>
+    <div class="form-card">
+      <h3>Kampanya Bilgileri</h3>
+      <div id="alert-campaign" class="alert"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Kampanya Adı</label>
+          <input type="text" id="camp-name" placeholder="örn: Nisan 2026 Testi">
+        </div>
+        <div class="form-group">
+          <label>Mail Şablonu</label>
+          <select id="camp-template">
+            <option value="bank">🏦 Banka Bildirimi</option>
+            <option value="cargo">📦 Kargo Teslim</option>
+            <option value="password">🔒 Şifre Yenileme</option>
+          </select>
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="createCampaign()">Kampanya Oluştur</button>
+    </div>
+  </div>
+ 
+  <!-- MAIL GÖNDER -->
+  <div class="page" id="page-send">
+    <div class="page-title">Mail Gönder</div>
+    <div class="page-sub">Seçili kampanya için test maili gönder</div>
+    <div class="form-card">
+      <h3>Gönderim Ayarları</h3>
+      <div id="alert-send" class="alert"></div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Kampanya Seç</label>
+          <select id="send-campaign-id"><option value="">— Kampanya seçin —</option></select>
+        </div>
+        <div class="form-group">
+          <label>Sunucu URL</label>
+          <input type="text" id="send-base-url" value="">
+        </div>
+      </div>
+      <div class="form-group full" style="margin-bottom:16px;">
+        <label>E-posta Adresleri (her satıra bir tane)</label>
+        <textarea id="send-emails" placeholder="ali@sirket.com&#10;ayse@sirket.com&#10;mehmet@sirket.com"></textarea>
+      </div>
+      <div style="background:#fff8f0;border:1px solid #fde8cc;border-radius:8px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:13px;font-weight:600;color:#d68910;margin-bottom:12px;">📧 SMTP Ayarları (Opsiyonel)</div>
+        <div class="form-row">
+          <div class="form-group"><label>SMTP Host</label><input type="text" id="smtp-host" placeholder="smtp.gmail.com"></div>
+          <div class="form-group"><label>Port</label><input type="number" id="smtp-port" placeholder="465" value="465"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Kullanıcı Adı (Gmail)</label><input type="text" id="smtp-user" placeholder="gonderici@gmail.com"></div>
+          <div class="form-group"><label>Uygulama Şifresi</label><input type="password" id="smtp-pass" placeholder="xxxx xxxx xxxx xxxx"></div>
+        </div>
+        <div style="font-size:12px;color:#aaa;">
+          Boş bırakırsanız simülasyon modunda çalışır. Gmail için
+          <strong>Uygulama Şifresi</strong> gereklidir (hesap ayarları → 2FA → uygulama şifreleri).
+        </div>
+      </div>
+      <button class="btn btn-primary" onclick="sendEmails()">Gönder</button>
+    </div>
+    <div id="send-results" style="display:none;" class="table-card">
+      <h3>Gönderim Sonuçları</h3>
+      <table>
+        <thead><tr><th>E-posta</th><th>Durum</th><th>Hata</th><th>Token</th></tr></thead>
+        <tbody id="send-results-body"></tbody>
+      </table>
+    </div>
+  </div>
+ 
+  <!-- İSTATİSTİKLER -->
+  <div class="page" id="page-stats">
+    <div class="page-title">İstatistikler</div>
+    <div class="page-sub">Kampanya bazlı detaylı analiz</div>
+    <div class="form-card" style="padding:20px 28px;">
+      <div style="display:flex;gap:12px;align-items:flex-end;">
+        <div class="form-group" style="flex:1;">
+          <label>Kampanya Seç</label>
+          <select id="stats-campaign-id"><option value="">— Kampanya seçin —</option></select>
+        </div>
+        <button class="btn btn-primary" onclick="loadStats()">Analiz Et</button>
+      </div>
+    </div>
+ 
+    <div id="stats-content" style="display:none;">
+      <div class="metrics">
+        <div class="metric-card"><div class="label">Gönderildi</div><div class="value" id="s-sent">—</div></div>
+        <div class="metric-card"><div class="label">Açılma Oranı</div><div class="value orange" id="s-open-rate">—</div><div class="sub" id="s-opened">—</div></div>
+        <div class="metric-card"><div class="label">Tıklama Oranı</div><div class="value red" id="s-click-rate">—</div><div class="sub" id="s-clicked">—</div></div>
+        <div class="metric-card"><div class="label">Bildirme Oranı</div><div class="value blue" id="s-report-rate">—</div><div class="sub" id="s-reported">—</div></div>
+        <div class="metric-card"><div class="label">Güvende</div><div class="value green" id="s-safe">—</div><div class="sub">etkileşmedi</div></div>
+      </div>
+ 
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h3>Dönüşüm Hunisi</h3>
+          <div class="funnel">
+            <div class="funnel-row"><span class="funnel-label">Gönderildi</span><div class="funnel-bar" style="background:#95a5a6;width:100%;" id="f-sent">%100</div></div>
+            <div class="funnel-row"><span class="funnel-label">Açıldı</span><div class="funnel-bar" style="background:#f39c12;width:0%;" id="f-opened">%0</div></div>
+            <div class="funnel-row"><span class="funnel-label">Tıkladı</span><div class="funnel-bar" style="background:#e74c3c;width:0%;" id="f-clicked">%0</div></div>
+            <div class="funnel-row"><span class="funnel-label">Bildirdi</span><div class="funnel-bar" style="background:#3498db;width:0%;" id="f-reported">%0</div></div>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Risk Dağılımı</h3>
+          <div class="chart-wrap">
+            <canvas id="riskChart"></canvas>
+          </div>
+        </div>
+      </div>
+ 
+      <div class="table-card">
+        <h3>Kullanıcı Detayları</h3>
+        <table>
+          <thead>
+            <tr>
+              <th>E-posta</th><th>Açtı</th><th>Tıkladı</th><th>Bildirdi</th>
+              <th>Cihaz</th><th>Konum</th><th>Açılma</th><th>Tıklama</th><th>Bildirme</th><th>Risk</th><th>Puan</th>
+            </tr>
+          </thead>
+          <tbody id="stats-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+ 
+</div>
+ 
+<script>
+// ── TEMEL AYARLAR ────────────────────────────────────────────────────────────
+// API_BASE boş bırakıldı → same-origin (dev tunnel veya localhost her ikisinde de çalışır)
+const API_BASE = '';
+let riskChart  = null;
+let campaigns  = [];
+let liveInterval = null;
+ 
+// ── SUNUCU URL OTOMATİK DOLDUR ───────────────────────────────────────────────
+// Kullanıcı hangi adresten açarsa o adresi base URL olarak kullan
+document.addEventListener('DOMContentLoaded', () => {
+  const baseUrlInput = document.getElementById('send-base-url');
+  if (baseUrlInput && !baseUrlInput.value) {
+    baseUrlInput.value = window.location.origin;
+  }
+});
+ 
+// ── ORTAK FETCH YARDIMCISI ────────────────────────────────────────────────────
+// JSON dönmesi beklenen tüm API çağrıları bu fonksiyondan geçer.
+
+async function apiFetch(url, options = {}) {
+  const defaultOpts = {
+    credentials: 'same-origin',
+    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+    ...options
+  };
+ 
+  let res;
+  try {
+    res = await fetch(API_BASE + url, defaultOpts);
+  } catch (networkErr) {
+    throw new Error('Sunucuya bağlanılamadı: ' + networkErr.message);
+  }
+ 
+  // Session doldu ya da redirect geldi
+  if (res.status === 401) {
+    document.getElementById('session-banner').style.display = 'block';
+    throw new Error('SESSION_EXPIRED');
+  }
+ 
+  // İçerik tipini kontrol et — HTML gelirse anlamlı hata ver
+  const contentType = res.headers.get('content-type') || '';
+  if (!contentType.includes('application/json')) {
+  
+    document.getElementById('session-banner').style.display = 'block';
+    throw new Error('Sunucu JSON yerine HTML döndürdü — oturum süresi dolmuş olabilir.');
+  }
+ 
+  const data = await res.json();
+ 
+  if (!res.ok) {
+    throw new Error(data.error || data.hata || `HTTP ${res.status}`);
+  }
+ 
+  return data;
+}
+ 
+// ── NAVİGASYON ────────────────────────────────────────────────────────────────
+function showPage(name, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  if (el) el.classList.add('active');
+  if (name === 'dashboard') { loadDashboard(); startLive(); }
+  else stopLive();
+}
+ 
+// ── CANLI GÜNCELLEME ──────────────────────────────────────────────────────────
+function startLive() {
+  stopLive();
+  liveInterval = setInterval(() => loadDashboard(true), 30000);
+}
+function stopLive() {
+  if (liveInterval) { clearInterval(liveInterval); liveInterval = null; }
+}
+ 
+// ── DASHBOARD ─────────────────────────────────────────────────────────────────
+async function loadDashboard(silent = false) {
+  try {
+    campaigns = await apiFetch('/api/campaigns');
+    document.getElementById('d-total-camp').textContent = campaigns.length;
+ 
+    let totalSent = 0, totalOpened = 0, totalClicked = 0, totalReported = 0;
+    const listEl = document.getElementById('camp-list');
+    const campDivs = [];
+ 
+    for (const c of campaigns) {
+      try {
+        const s = await apiFetch('/api/stats/' + c.id);
+ 
+        totalSent     += s.total_sent     || 0;
+        totalOpened   += s.total_opened   || 0;
+        totalClicked  += s.total_clicked  || 0;
+        totalReported += s.total_reported || 0;
+ 
+        const tmpl = {bank:'🏦 Banka', cargo:'📦 Kargo', password:'🔒 Şifre'}[c.template] || c.template;
+        const div = document.createElement('div');
+        div.className = 'camp-item';
+        div.innerHTML = `
+          <div>
+            <div class="camp-name">${c.name}</div>
+            <div class="camp-meta">${tmpl} · ${s.total_sent} kişi · Açılma %${s.open_rate} · Tıklama %${s.click_rate} · Bildirme %${s.report_rate || 0}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span class="camp-id">${c.id}</span>
+            <button onclick="deleteCampaign('${c.id}','${c.name}',event)"
+              style="background:#fdecea;color:#c0392b;border:1px solid #f1948a;border-radius:6px;
+                     padding:4px 10px;font-size:11px;cursor:pointer;font-weight:600;">Sil</button>
+          </div>`;
+        div.onclick = () => goToStats(c.id);
+        campDivs.push(div);
+      } catch (e) {
+        if (e.message === 'SESSION_EXPIRED') return;
+        console.error('stats hatası:', e);
+      }
+    }
+ 
+    listEl.innerHTML = '';
+    if (campDivs.length === 0) listEl.innerHTML = '<div class="loading">Henüz kampanya yok.</div>';
+    campDivs.forEach(d => listEl.appendChild(d));
+ 
+    document.getElementById('d-total-sent').textContent     = totalSent;
+    document.getElementById('d-total-opened').textContent   = totalOpened;
+    document.getElementById('d-total-clicked').textContent  = totalClicked;
+    document.getElementById('d-total-reported').textContent = totalReported;
+    document.getElementById('last-update-time').textContent = new Date().toLocaleTimeString('tr-TR');
+ 
+    populateCampaignSelects();
+  } catch (e) {
+    if (e.message === 'SESSION_EXPIRED') return;
+    console.error('Dashboard hatası:', e);
+  }
+}
+ 
+function populateCampaignSelects() {
+  ['send-campaign-id', 'stats-campaign-id'].forEach(id => {
+    const sel = document.getElementById(id);
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">— Kampanya seçin —</option>';
+    campaigns.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.name + ' (' + c.id + ')';
+      sel.appendChild(opt);
+    });
+    if (cur) sel.value = cur;
+  });
+}
+ 
+function goToStats(id) {
+  stopLive();
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-stats').classList.add('active');
+  document.querySelectorAll('.nav-item')[3].classList.add('active');
+  document.getElementById('stats-campaign-id').value = id;
+  loadStats();
+}
+ 
+async function deleteCampaign(id, name, event) {
+  event.stopPropagation();
+  if (!confirm(`"${name}" kampanyasını silmek istediğine emin misin?\nBu işlem geri alınamaz!`)) return;
+  try {
+    const data = await apiFetch('/api/campaigns/' + id, { method: 'DELETE' });
+    if (data.success) loadDashboard();
+    else alert('Silinemedi.');
+  } catch (e) {
+    if (e.message !== 'SESSION_EXPIRED') alert('Hata: ' + e.message);
+  }
+}
+ 
+// ── KAMPANYA OLUŞTUR ──────────────────────────────────────────────────────────
+async function createCampaign() {
+  const name     = document.getElementById('camp-name').value.trim();
+  const template = document.getElementById('camp-template').value;
+  const alertEl  = document.getElementById('alert-campaign');
+  if (!name) { showAlert(alertEl, 'Kampanya adı boş olamaz!', 'error'); return; }
+  try {
+    const data = await apiFetch('/api/campaigns', {
+      method: 'POST',
+      body: JSON.stringify({ name, template })
+    });
+    showAlert(alertEl, `✅ Kampanya oluşturuldu! ID: ${data.campaign_id}`, 'success');
+    document.getElementById('camp-name').value = '';
+    loadDashboard();
+  } catch (e) {
+    if (e.message !== 'SESSION_EXPIRED')
+      showAlert(alertEl, 'Hata: ' + e.message, 'error');
+  }
+}
+ 
+// ── MAIL GÖNDER ───────────────────────────────────────────────────────────────
+async function sendEmails() {
+  const campaignId = document.getElementById('send-campaign-id').value;
+  const baseUrl    = document.getElementById('send-base-url').value.trim() || window.location.origin;
+  const emailsRaw  = document.getElementById('send-emails').value;
+  const alertEl    = document.getElementById('alert-send');
+ 
+  if (!campaignId) { showAlert(alertEl, 'Kampanya seçin!', 'error'); return; }
+  const emails = emailsRaw.split('\n').map(e => e.trim()).filter(Boolean);
+  if (!emails.length) { showAlert(alertEl, 'En az bir e-posta adresi girin!', 'error'); return; }
+ 
+  const smtpHost = document.getElementById('smtp-host').value.trim();
+  const body = { campaign_id: campaignId, emails, base_url: baseUrl };
+ 
+  if (smtpHost) {
+    body.smtp_config = {
+      host:     smtpHost,
+      port:     parseInt(document.getElementById('smtp-port').value) || 465,
+      user:     document.getElementById('smtp-user').value.trim(),
+      password: document.getElementById('smtp-pass').value,
+      from:     document.getElementById('smtp-user').value.trim()
+    };
+  }
+ 
+  try {
+    showAlert(alertEl, '⏳ Gönderiliyor...', 'success');
+    const data = await apiFetch('/api/send', {
+      method: 'POST',
+      body: JSON.stringify(body)
+    });
+ 
+    showAlert(alertEl,
+      `✅ ${data.sent || 0} mail gönderildi, ${data.simulation || 0} simülasyon, ` +
+      `${data.error || 0} hata, ${data.blocked || 0} engellendi.`,
+      'success'
+    );
+ 
+    const tbody = document.getElementById('send-results-body');
+    tbody.innerHTML = '';
+    (data.results || []).forEach(r => {
+      const durum = r.status === 'gonderildi' ? 'low' : r.status === 'hata' ? 'high' : 'mid';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${r.email}</td>
+        <td><span class="badge ${durum}">${r.status}</span></td>
+        <td style="color:#c0392b;font-size:11px;">${r.error || '—'}</td>
+        <td style="font-family:monospace;font-size:10px;color:#888;">${r.token || '—'}</td>`;
+      tbody.appendChild(tr);
+    });
+    document.getElementById('send-results').style.display = 'block';
+  } catch (e) {
+    if (e.message !== 'SESSION_EXPIRED')
+      showAlert(alertEl, 'Hata: ' + e.message, 'error');
+  }
+}
+ 
+// ── İSTATİSTİKLER ─────────────────────────────────────────────────────────────
+async function loadStats() {
+  const id = document.getElementById('stats-campaign-id').value;
+  if (!id) return;
+  try {
+    const d = await apiFetch('/api/stats/' + id);
+ 
+    document.getElementById('stats-content').style.display = 'block';
+    document.getElementById('s-sent').textContent        = d.total_sent;
+    document.getElementById('s-open-rate').textContent   = '%' + d.open_rate;
+    document.getElementById('s-opened').textContent      = d.total_opened + ' kişi açtı';
+    document.getElementById('s-click-rate').textContent  = '%' + d.click_rate;
+    document.getElementById('s-clicked').textContent     = d.total_clicked + ' kişi tıkladı';
+    document.getElementById('s-report-rate').textContent = '%' + (d.report_rate || 0);
+    document.getElementById('s-reported').textContent    = (d.total_reported || 0) + ' kişi bildirdi';
+    document.getElementById('s-safe').textContent        = d.total_sent - d.total_opened;
+ 
+    const setBar = (elId, pct) => {
+      const el = document.getElementById(elId);
+      el.style.width = Math.max(pct, 5) + '%';
+      el.textContent = '%' + pct;
+    };
+    setBar('f-opened',   d.open_rate);
+    setBar('f-clicked',  d.click_rate);
+    setBar('f-reported', d.report_rate || 0);
+ 
+    const highC = (d.users || []).filter(u => u.clicked).length;
+    const midC  = (d.users || []).filter(u => u.opened && !u.clicked).length;
+    const lowC  = (d.users || []).filter(u => !u.opened).length;
+ 
+    if (riskChart) riskChart.destroy();
+    riskChart = new Chart(document.getElementById('riskChart'), {
+      type: 'doughnut',
+      data: {
+        labels: ['Yüksek Risk', 'Orta Risk', 'Düşük Risk'],
+        datasets: [{ data: [highC, midC, lowC], backgroundColor: ['#e74c3c', '#f39c12', '#27ae60'], borderWidth: 0 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false, cutout: '60%',
+        plugins: { legend: { position: 'bottom', labels: { font: { size: 12 }, padding: 16 } } }
+      }
+    });
+ 
+    const tbody = document.getElementById('stats-table-body');
+    tbody.innerHTML = '';
+    (d.users || []).forEach(u => {
+      const cls = u.risk_score >= 100 ? 'high' : u.risk_score >= 40 ? 'mid' : 'low';
+      const fmt = dt => dt ? dt.replace('T', ' ').substring(0, 16) : '—';
+      tbody.innerHTML += `
+        <tr>
+          <td>${u.email}</td>
+          <td>${u.opened  ? '<span class="check">✓</span>'                        : '<span class="cross">—</span>'}</td>
+          <td>${u.clicked ? '<span class="check" style="color:#e74c3c">✓</span>'  : '<span class="cross">—</span>'}</td>
+          <td>${u.reported? '<span class="badge reported">BİLDİRDİ</span>'        : '<span class="cross">—</span>'}</td>
+          <td style="font-size:11px;">${u.device   || '—'}</td>
+          <td style="font-size:11px;color:#555;">${u.location || '—'}</td>
+          <td style="font-size:11px;color:#888;">${fmt(u.opened_at)}</td>
+          <td style="font-size:11px;color:#888;">${fmt(u.clicked_at)}</td>
+          <td style="font-size:11px;color:#888;">${fmt(u.reported_at)}</td>
+          <td><span class="badge ${cls}">${u.risk_label}</span></td>
+          <td style="font-weight:700;">${u.risk_score}</td>
+        </tr>`;
+    });
+  } catch (e) {
+    if (e.message !== 'SESSION_EXPIRED') console.error('Stats hatası:', e);
+  }
+}
+ 
+// ── YARDIMCI ──────────────────────────────────────────────────────────────────
+function showAlert(el, msg, type) {
+  el.textContent = msg;
+  el.className = 'alert ' + type + ' show';
+  setTimeout(() => el.classList.remove('show'), 6000);
+}
+ 
+// ── BAŞLAT ────────────────────────────────────────────────────────────────────
+loadDashboard();
+startLive();
+</script>
+</body>
+</html>
